@@ -192,6 +192,8 @@ interface LicenseeExtension {
    */
   fun violationAction(level: ViolationAction)
 
+  fun warnings(config: WarningConfigurer.() -> Unit)
+
   interface AllowUrlOptions {
     fun because(reason: String)
   }
@@ -213,6 +215,28 @@ enum class ViolationAction {
   IGNORE,
 }
 
+class WarningConfigurer(warningConfig: WarningConfig) {
+  internal var config = warningConfig
+  @Suppress("unused") // Public API.
+  var unusedAllowedIdentifiers: Boolean
+    get() = config.unusedAllowedIdentifiers
+    set(value) {
+      config = config.copy(unusedAllowedIdentifiers = value)
+    }
+  @Suppress("unused") // Public API.
+  var unusedAllowedUrls: Boolean
+    get() = config.unusedAllowedUrls
+    set(value) {
+      config = config.copy(unusedAllowedUrls = value)
+    }
+  @Suppress("unused") // Public API.
+  var unusedAllowedCoordinates: Boolean
+    get() = config.unusedAllowedCoordinates
+    set(value) {
+      config = config.copy(unusedAllowedCoordinates = value)
+    }
+}
+
 internal abstract class IgnoredCoordinate : Named {
   abstract val ignoredDatas: MapProperty<String, IgnoredData>
 }
@@ -225,8 +249,12 @@ internal abstract class MutableLicenseeExtension : LicenseeExtension {
   internal abstract val ignoredCoordinates: NamedDomainObjectContainer<IgnoredCoordinate>
 
   internal abstract val violationAction: Property<ViolationAction>
+
+  internal abstract val warningConfig: Property<WarningConfig>
+
   init {
     violationAction.convention(ViolationAction.FAIL)
+    warningConfig.convention(WarningConfig())
   }
 
   fun toDependencyTreeConfig(): Provider<DependencyConfig> {
@@ -252,6 +280,7 @@ internal abstract class MutableLicenseeExtension : LicenseeExtension {
         allowedDependencies.mapValues {
           it.value.orElse(null)
         },
+        warningConfig.get(),
       )
     }
   }
@@ -345,6 +374,12 @@ internal abstract class MutableLicenseeExtension : LicenseeExtension {
 
   override fun violationAction(level: ViolationAction) {
     violationAction.set(level)
+  }
+
+  override fun warnings(configurer: WarningConfigurer.() -> Unit) {
+    val warningConfigurer = WarningConfigurer(warningConfig.get())
+    warningConfigurer.configurer()
+    warningConfig.set(warningConfigurer.config)
   }
 }
 

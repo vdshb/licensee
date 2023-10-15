@@ -67,6 +67,9 @@ abstract class LicenseeTask : DefaultTask() {
   internal abstract val violationAction: Property<ViolationAction>
 
   @get:Input
+  internal abstract val warningConfig: Property<WarningConfig>
+
+  @get:Input
   internal abstract val coordinatesToPomInfo: MapProperty<DependencyCoordinates, PomInfo>
 
   fun configurationToCheck(configuration: Configuration) {
